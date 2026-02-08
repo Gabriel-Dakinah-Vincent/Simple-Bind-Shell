@@ -1080,6 +1080,73 @@ pip install -e ".[dev]"
 pytest -v
 ```
 
+### TestPyPI install and verification
+
+Step-by-step:
+
+1. Create and activate a virtual environment:
+
+```bash
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+```
+
+2. Install from TestPyPI:
+
+```bash
+pip install -i https://test.pypi.org/simple/ bind-shell
+```
+
+3. Verify the CLI:
+
+```bash
+bind-shell --version
+bind-shell --help
+```
+
+4. Run a quick end-to-end check (Linux/macOS):
+
+```bash
+bind-shell --host 127.0.0.1 --port 4444 --verbose
+```
+
+In a new terminal:
+
+```bash
+printf "whoami\nexit\n" | nc 127.0.0.1 4444
+```
+
+5. Run a quick end-to-end check (Windows PowerShell):
+
+```powershell
+bind-shell --host 127.0.0.1 --port 4444 --verbose
+```
+
+In a new PowerShell window:
+
+```powershell
+$client = New-Object System.Net.Sockets.TcpClient("127.0.0.1",4444)
+$stream = $client.GetStream()
+$writer = New-Object System.IO.StreamWriter($stream)
+$writer.AutoFlush = $true
+$reader = New-Object System.IO.StreamReader($stream)
+
+$writer.WriteLine("whoami")
+$reader.ReadLine()
+
+$writer.WriteLine("exit")
+$client.Close()
+```
+
+6. Optional cleanup:
+
+```bash
+pip uninstall bind-shell
+```
+
 ### Lint and format
 
 ```bash
