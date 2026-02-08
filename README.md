@@ -2,7 +2,7 @@
 
 A lightweight bind shell implementation in Python with a CLI and a small, focused API.
 
-[![CI](https://github.com/yourusername/bind-shell/workflows/CI/badge.svg)](https://github.com/yourusername/bind-shell/actions)
+[![CI](https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell/workflows/CI/badge.svg)](https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell/actions)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -70,7 +70,7 @@ bind-shell --version
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/bind-shell.git
+git clone https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell.git
 cd bind-shell
 python -m venv .venv
 # Windows
@@ -90,7 +90,7 @@ bind-shell --help
 ### Development Installation
 
 ```bash
-git clone https://github.com/yourusername/bind-shell.git
+git clone https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell.git
 cd bind-shell
 python -m venv .venv
 # Windows
@@ -1063,7 +1063,7 @@ bind-shell --command-timeout 120
 ### Setup
 
 ```bash
-git clone https://github.com/yourusername/bind-shell.git
+git clone https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell.git
 cd bind-shell
 python -m venv .venv
 # Windows
@@ -1101,8 +1101,8 @@ This software is provided for educational and testing purposes only. Users are r
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/yourusername/bind-shell/issues)
-- Discussions: [GitHub Discussions](https://github.com/yourusername/bind-shell/discussions)
+- Issues: [GitHub Issues](https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell/issues)
+- Discussions: [GitHub Discussions](https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell/discussions)
 - Security: See [SECURITY.md](SECURITY.md)
 
 ## Acknowledgments

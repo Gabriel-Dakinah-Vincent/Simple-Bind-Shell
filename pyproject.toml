@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bind-shell"
-version = "0.1.0"
+version = "0.1.1"
 description = "A lightweight bind shell implementation"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -39,9 +39,9 @@ dev = [
 bind-shell = "simple_bind_shell.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/bind-shell"
-Repository = "https://github.com/yourusername/bind-shell"
-Issues = "https://github.com/yourusername/bind-shell/issues"
+Homepage = "https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell"
+Repository = "https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell"
+Issues = "https://github.com/Gabriel-Dakinah-Vincent/Simple-Bind-Shell/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
