@@ -1,6 +1,6 @@
 # Bind Shell
 
-A lightweight, production-ready bind shell implementation in Python with comprehensive CLI support, logging, and error handling.
+A lightweight bind shell implementation in Python with a CLI and a small, focused API.
 
 [![CI](https://github.com/yourusername/bind-shell/workflows/CI/badge.svg)](https://github.com/yourusername/bind-shell/actions)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
@@ -9,29 +9,51 @@ A lightweight, production-ready bind shell implementation in Python with compreh
 ## Table of Contents
 
 - [Features](#features)
+- [Security Warning](#security-warning)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Configuration Reference](#configuration-reference)
+- [Usage: CLI](#usage-cli)
+- [Usage: Python API](#usage-python-api)
+- [Client Examples](#client-examples)
+- [Advanced Usage](#advanced-usage)
+- [Manual Test Checklist](#manual-test-checklist)
 - [Architecture](#architecture)
-- [Usage Guide](#usage-guide)
 - [Best Practices](#best-practices)
 - [Security Considerations](#security-considerations)
-- [Development](#development)
 - [Troubleshooting](#troubleshooting)
+- [Development](#development)
 - [Contributing](#contributing)
+- [License](#license)
+- [Disclaimer](#disclaimer)
+- [Support](#support)
+- [Acknowledgments](#acknowledgments)
 
 ## Features
 
-- **Multi-threaded Architecture**: Handle multiple concurrent client connections
-- **Robust Error Handling**: Comprehensive exception handling and logging
-- **Timeout Protection**: Command execution (30s) and client connection (5min) timeouts
-- **Graceful Shutdown**: Clean resource cleanup on Ctrl+C
-- **Configurable**: Flexible host, port, and connection limit settings
-- **Cross-Platform**: Works on Windows, Linux, and macOS
-- **Production-Ready**: Logging, monitoring, and error recovery built-in
-- **CLI Interface**: User-friendly command-line interface with click
-- **Well-Tested**: Comprehensive test suite with pytest
+- Multi-threaded connection handling
+- Command execution with a per-command timeout
+- Client idle timeout
+- Configurable host, port, and backlog size
+- CLI and Python API
+- Cross-platform (Windows, Linux, macOS)
+
+## Security Warning
+
+This bind shell provides unauthenticated, unencrypted command execution.
+Do not expose it to untrusted networks or production systems.
+Use it only in controlled environments (local dev, lab, CTF, or authorized testing).
 
 ## Installation
+
+### Prerequisites
+
+- Python 3.8+
+- pip
+
+Optional but recommended:
+- Git (for source installs)
+- A virtual environment (venv)
 
 ### From PyPI (Recommended)
 
@@ -39,341 +61,302 @@ A lightweight, production-ready bind shell implementation in Python with compreh
 pip install bind-shell
 ```
 
+Verify:
+
+```bash
+bind-shell --version
+```
+
 ### From Source
 
 ```bash
 git clone https://github.com/yourusername/bind-shell.git
 cd bind-shell
-pip install -e .
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+
+pip install .
+```
+
+Verify:
+
+```bash
+bind-shell --help
 ```
 
 ### Development Installation
 
-For contributors and developers:
-
 ```bash
 git clone https://github.com/yourusername/bind-shell.git
 cd bind-shell
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+
 pip install -e ".[dev]"
 ```
 
 This installs additional tools: pytest, black, ruff, coverage.
 
+### Upgrade / Uninstall
+
+```bash
+# Upgrade
+pip install -U bind-shell
+
+# Uninstall
+pip uninstall bind-shell
+```
+
 ## Quick Start
 
-### 1. Start the Server
+### 1) Start the server
 
 ```bash
 # Start with defaults (0.0.0.0:4444)
 bind-shell
 ```
 
-### 2. Connect from Client
+### 2) Connect from a client
 
 ```bash
-# Using netcat
-nc localhost 4444
+# Linux/macOS
+nc 127.0.0.1 4444
 
-# Using telnet
-telnet localhost 4444
+# Windows (if ncat is installed)
+ncat 127.0.0.1 4444
 ```
 
-### 3. Execute Commands
+### 3) Run commands
 
-```bash
-ls -la
-pwd
+```text
 whoami
+pwd
 exit
 ```
 
-## Architecture
+## Configuration Reference
 
-### Package Structure
+### CLI options
 
-```
-bind-shell/
-├── src/simple_bind_shell/    # Source code (src-layout)
-│   ├── __init__.py            # Package initialization and public API
-│   ├── version.py             # Version management
-│   ├── bind_shell.py          # Core bind shell logic
-│   └── cli.py                 # Command-line interface
-├── tests/                     # Test suite
-├── docs/                      # Documentation
-└── pyproject.toml             # Project metadata and dependencies
-```
+- `--host`, `-h` (default: `0.0.0.0`)
+- `--port`, `-p` (default: `4444`)
+- `--max-connections`, `-m` (default: `4`)
+- `--command-timeout` (default: `30` seconds)
+- `--client-timeout` (default: `300` seconds)
+- `--verbose` (enable debug logging)
 
-### Core Components
+### Environment variables
 
-#### BindShell Class
+- `BIND_SHELL_HOST`
+- `BIND_SHELL_PORT`
+- `BIND_SHELL_MAX_CONN`
+- `BIND_SHELL_COMMAND_TIMEOUT`
+- `BIND_SHELL_CLIENT_TIMEOUT`
 
-The main class implementing bind shell functionality:
+Note: `max-connections` controls the socket listen backlog (queued connections). It does not cap active threads.
 
-- **Initialization**: Configures host, port, and connection limits
-- **Command Execution**: Runs shell commands via subprocess
-- **Client Handling**: Manages individual client connections in separate threads
-- **Server Loop**: Accepts and dispatches incoming connections
+## Usage: CLI
 
-#### CLI Module
+### CLI basics
 
-Provides command-line interface using Click:
-
-- Argument parsing and validation
-- Help text and version information
-- Integration with BindShell class
-
-### Design Principles
-
-1. **Modularity**: Separate concerns (core logic, CLI, tests)
-2. **Testability**: Class-based design enables unit testing
-3. **Standards Compliance**: Follows PEP 621 and modern packaging standards
-4. **Extensibility**: Easy to add features like authentication or encryption
-5. **Minimal Dependencies**: Only requires click for CLI functionality
-
-### Threading Model
-
-- Main thread: Accepts incoming connections
-- Worker threads: Handle individual client sessions (daemon threads)
-- Thread-safe: Each client has isolated socket and state
-
-### Protocol
-
-Simple text-based protocol:
-1. Client connects to server
-2. Client sends commands terminated by newline
-3. Server executes command and returns output
-4. Client sends "exit" to close connection
-
-## Usage Guide
-
-### Command-Line Interface
-
-#### Basic Usage
+1. Start the server:
 
 ```bash
-# Start with default settings
-bind-shell
-
-# Output:
-# [*] Bind shell listening on 0.0.0.0:4444
-# [*] Max connections: 10
-# [*] Press Ctrl+C to stop
+bind-shell --host 127.0.0.1 --port 4444
 ```
 
-#### Host Configuration
+2. Connect from a client (examples):
 
 ```bash
-# Listen on all interfaces (default)
-bind-shell --host 0.0.0.0
-
-# Listen on localhost only (recommended for testing)
-bind-shell --host 127.0.0.1
-
-# Listen on specific IP
-bind-shell --host 192.168.1.100
+nc 127.0.0.1 4444
 ```
 
-#### Port Configuration
+3. Stop the server with `Ctrl+C` in the server terminal.
+
+### CLI help
 
 ```bash
-# Default port
-bind-shell --port 4444
-
-# Custom port
-bind-shell --port 8080
-
-# High port (no root required)
-bind-shell --port 9999
-```
-
-#### Connection Limits
-
-```bash
-# Allow up to 50 queued connections
-bind-shell --max-connections 50
-
-# Minimal setup (1 connection at a time)
-bind-shell --max-connections 1
-```
-
-#### Verbose Logging
-
-```bash
-# Enable debug logging
-bind-shell --verbose
-
-# Combine with other options
-bind-shell --host 127.0.0.1 --port 9999 --verbose
-
-# Save logs to file
-bind-shell --verbose 2>&1 | tee server.log
-```
-
-#### Help and Version
-
-```bash
-# Show help
 bind-shell --help
-
-# Show version
 bind-shell --version
 ```
 
-### Python Module Usage
+### Local-only (safe default for testing)
 
-#### Basic Example
+```bash
+bind-shell --host 127.0.0.1 --port 4444
+```
+
+### LAN testing (controlled environments only)
+
+```bash
+bind-shell --host 192.168.1.50 --port 4444
+```
+
+### Custom timeouts
+
+```bash
+# 60s command timeout, 10-minute client idle timeout
+bind-shell --command-timeout 60 --client-timeout 600
+```
+
+### Backlog sizing
+
+```bash
+# Allow more queued connections
+bind-shell --max-connections 50
+```
+
+### Verbose logging
+
+```bash
+bind-shell --verbose
+bind-shell --verbose 2>&1 | tee server.log
+```
+
+### Run in background (examples)
+
+Linux/macOS:
+
+```bash
+nohup bind-shell --host 127.0.0.1 --port 4444 > bind-shell.log 2>&1 &
+```
+
+Windows PowerShell:
+
+```powershell
+Start-Process -NoNewWindow -FilePath "bind-shell" -ArgumentList "--host 127.0.0.1 --port 4444"
+```
+
+## Usage: Python API
+
+### Blocking server
 
 ```python
 from simple_bind_shell import BindShell
 
-# Create instance with defaults
 shell = BindShell()
-
-# Start the server (blocking)
 shell.start()
 ```
 
-#### Custom Configuration
+### Custom configuration
 
 ```python
 from simple_bind_shell import BindShell
 
-# Configure custom settings
 shell = BindShell(
     host="127.0.0.1",
     port=5555,
-    max_connections=20
+    max_connections=10,
+    command_timeout=60,
+    client_timeout=600,
 )
 
 shell.start()
 ```
 
-#### Non-Blocking Server
+### Non-blocking server
 
 ```python
 import threading
+import time
 from simple_bind_shell import BindShell
 
-# Run server in background thread
 shell = BindShell(host="127.0.0.1", port=4444)
 thread = threading.Thread(target=shell.start, daemon=True)
 thread.start()
 
-# Do other work here
-import time
-time.sleep(60)
+# Do other work
+time.sleep(10)
 
 # Stop the server
 shell.stop()
 ```
 
-#### Error Handling
+### Error handling
 
 ```python
 from simple_bind_shell import BindShell, BindShellError
-import logging
-
-# Setup logging
-logging.basicConfig(level=logging.INFO)
 
 try:
-    shell = BindShell(host="0.0.0.0", port=80)  # Privileged port
+    shell = BindShell(host="0.0.0.0", port=80)
     shell.start()
-except BindShellError as e:
-    print(f"Failed to start server: {e}")
-except KeyboardInterrupt:
-    print("Server stopped by user")
+except BindShellError as exc:
+    print(f"Failed to start server: {exc}")
 ```
 
-#### Command Execution
+### Run a single command
 
 ```python
 from simple_bind_shell import BindShell
 
 shell = BindShell()
-
-# Execute single command
 result = shell.run_command("echo Hello World")
-print(result.decode())  # Output: Hello World
-
-# Handle errors
-result = shell.run_command("invalid_command")
-if b"Error" in result:
-    print("Command failed")
+print(result.decode(errors="replace"))
 ```
 
-#### Logging Integration
+## Client Examples
 
-```python
-import logging
-from simple_bind_shell import BindShell
-
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('bind_shell.log'),
-        logging.StreamHandler()
-    ]
-)
-
-# Start server
-shell = BindShell(host="127.0.0.1", port=4444)
-shell.start()
-```
-
-### Client Connection Examples
-
-#### Using Netcat (Linux/macOS)
+### Netcat (Linux/macOS)
 
 ```bash
-# Connect to server
-nc localhost 4444
-
-# Execute commands
-ls -la
-pwd
-id
-exit
+nc 127.0.0.1 4444
 ```
 
-#### Using Netcat (Windows)
+### Ncat (Windows)
 
 ```cmd
-ncat localhost 4444
+ncat 127.0.0.1 4444
 ```
 
-#### Using Telnet
+### Telnet
 
 ```bash
-telnet localhost 4444
+telnet 127.0.0.1 4444
 ```
 
-#### Using Python Client
+### PowerShell client (no extra tools)
+
+```powershell
+$client = New-Object System.Net.Sockets.TcpClient("127.0.0.1",4444)
+$stream = $client.GetStream()
+$writer = New-Object System.IO.StreamWriter($stream)
+$writer.AutoFlush = $true
+$reader = New-Object System.IO.StreamReader($stream)
+
+$writer.WriteLine("whoami")
+$reader.ReadLine()
+
+$writer.WriteLine("pwd")
+$reader.ReadLine()
+
+$writer.WriteLine("exit")
+$client.Close()
+```
+
+### Python client
 
 ```python
 import socket
 
-# Connect to server
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(("localhost", 4444))
+client.connect(("127.0.0.1", 4444))
 
-# Receive welcome message
-print(client.recv(1024).decode())
-
-# Send command
 client.sendall(b"whoami\n")
-print(client.recv(4096).decode())
+print(client.recv(4096).decode(errors="replace"))
 
-# Close connection
 client.sendall(b"exit\n")
 client.close()
 ```
 
-### Advanced Usage
+## Advanced Usage
 
-#### Running as System Service (systemd)
+### Running as a systemd service (Linux)
 
 Create `/etc/systemd/system/bind-shell.service`:
 
@@ -401,7 +384,7 @@ sudo systemctl start bind-shell
 sudo systemctl status bind-shell
 ```
 
-#### Docker Container
+### Docker container
 
 Create `Dockerfile`:
 
@@ -422,7 +405,7 @@ docker build -t bind-shell .
 docker run -p 4444:4444 bind-shell
 ```
 
-#### Environment Variables
+### Environment variables
 
 ```bash
 # Set defaults via environment
@@ -433,7 +416,7 @@ export BIND_SHELL_PORT=5555
 bind-shell --host $BIND_SHELL_HOST --port $BIND_SHELL_PORT
 ```
 
-#### Process Management
+### Process management
 
 ```bash
 # Run in background
@@ -449,47 +432,103 @@ kill <PID>
 nohup bind-shell --verbose > bind-shell.log 2>&1 &
 ```
 
+### Windows Task Scheduler (auto-start on boot)
+
+Use Task Scheduler to start the server automatically after reboot. This is intended for authorized, controlled environments only.
+
+PowerShell (run as Administrator):
+
+```powershell
+# Replace with your Python path if bind-shell isn't on the system PATH
+$python = "C:\Python310\python.exe"
+$args = "-m simple_bind_shell.cli --host 127.0.0.1 --port 4444"
+
+# Create a task that runs at startup
+schtasks /Create /TN "BindShell" /SC ONSTART /RL HIGHEST `
+    /TR "`"$python`" $args"
+
+# Check task status
+schtasks /Query /TN "BindShell" /V /FO LIST
+```
+
+To stop or remove:
+
+```powershell
+schtasks /End /TN "BindShell"
+schtasks /Delete /TN "BindShell" /F
+```
+
+Tip: For a user-scoped task instead of a system task, add `/RU "$env:USERNAME"` and omit `/RL HIGHEST`.
+
+## Manual Test Checklist
+
+1. Start server: `bind-shell --host 127.0.0.1 --port 4444 --verbose`
+2. Connect using `nc`, `ncat`, or the PowerShell client above
+3. Run commands: `whoami`, `pwd`, `echo test`
+4. Confirm output returns
+5. Run `exit` and confirm the client disconnects
+6. Confirm server continues to accept new connections
+
+## Architecture
+
+### Package Structure
+
+```
+bind-shell/
+|-- src/simple_bind_shell/    # Source code (src-layout)
+|   |-- __init__.py            # Package initialization and public API
+|   |-- version.py             # Version management
+|   |-- bind/                  # Bind shell implementation
+|   |   |-- __init__.py        # Bind package exports
+|   |   `-- bind_shell.py      # Core bind shell logic
+|   `-- cli.py                 # Command-line interface
+|-- tests/                     # Test suite
+`-- pyproject.toml             # Project metadata and dependencies
+```
+
+### Protocol (text-based)
+
+1. Client connects
+2. Client sends a command ending with a newline
+3. Server executes the command and returns stdout/stderr
+4. Client sends `exit` to close the session
+
 ## Best Practices
 
 ### Security Best Practices
 
-#### Network Security
-
-**1. Restrict Network Access**
+#### Restrict network access
 
 ```bash
 # Always bind to localhost for local testing
-bind-shell --host 127.0.0.1  # Recommended
+bind-shell --host 127.0.0.1
 
 # Avoid on production systems
 # bind-shell --host 0.0.0.0
 ```
 
-**Use firewall rules:**
+Use firewall rules (Linux):
+
 ```bash
-# Linux (iptables)
+# iptables
 sudo iptables -A INPUT -p tcp --dport 4444 -s 192.168.1.100 -j ACCEPT
 sudo iptables -A INPUT -p tcp --dport 4444 -j DROP
 
-# Linux (ufw)
+# ufw
 sudo ufw allow from 192.168.1.100 to any port 4444
 sudo ufw deny 4444
-
-# Save rules
-sudo iptables-save > /etc/iptables/rules.v4
 ```
 
-**Network segmentation:**
+Network segmentation example:
+
 ```bash
-# Use VLANs or separate networks
-# Bind to internal network interface only
 bind-shell --host 10.0.1.100 --port 4444
 ```
 
-**2. Use Non-Privileged Ports**
+#### Use non-privileged ports
 
 ```bash
-# Good: Ports > 1024 (no root required)
+# Good: Ports > 1024
 bind-shell --port 4444
 bind-shell --port 8080
 bind-shell --port 9999
@@ -499,7 +538,7 @@ bind-shell --port 9999
 # bind-shell --port 443
 ```
 
-**3. Implement Access Controls**
+#### Implement access controls
 
 ```bash
 # Create dedicated user without login shell
@@ -509,20 +548,22 @@ sudo useradd -r -s /bin/false bindshell
 sudo -u bindshell bind-shell --host 127.0.0.1
 ```
 
-**Use SELinux/AppArmor:**
+SELinux / AppArmor examples:
+
 ```bash
-# SELinux context
+# SELinux
 sudo semanage port -a -t bindshell_port_t -p tcp 4444
 
-# AppArmor profile
+# AppArmor
 sudo aa-enforce /etc/apparmor.d/usr.local.bin.bind-shell
 ```
 
-#### Application Security
+### Application Security
 
-**1. Input Validation**
+#### Input validation
 
-The application validates inputs automatically:
+The CLI validates inputs automatically:
+
 ```bash
 # Port validation (1-65535)
 bind-shell --port 70000  # Will fail
@@ -531,9 +572,10 @@ bind-shell --port 70000  # Will fail
 bind-shell --max-connections 200  # Will fail
 ```
 
-**2. Command Execution Safety**
+#### Command execution safety
 
 Avoid dangerous commands in client sessions:
+
 ```bash
 # Dangerous - avoid these:
 rm -rf /
@@ -541,11 +583,12 @@ dd if=/dev/zero of=/dev/sda
 :(){ :|:& };:  # Fork bomb
 ```
 
-Built-in timeouts:
+Timeout defaults:
+
 - Command timeout: 30 seconds
 - Connection timeout: 5 minutes
 
-**3. Logging and Monitoring**
+#### Logging and monitoring
 
 ```bash
 # Log to file
@@ -563,11 +606,8 @@ bind-shell --verbose 2>&1 | grep "Connection from"
 
 ### Performance Best Practices
 
-#### Resource Management
+#### Connection limits
 
-**1. Connection Limits**
-
-Adjust based on expected load:
 ```bash
 # Low traffic (1-5 concurrent users)
 bind-shell --max-connections 5
@@ -579,9 +619,8 @@ bind-shell --max-connections 20
 bind-shell --max-connections 50
 ```
 
-**2. System Resources**
+#### System resources
 
-Monitor resource usage:
 ```bash
 # CPU and memory
 top -p $(pgrep -f bind-shell)
@@ -593,7 +632,8 @@ ss -tnp | grep bind-shell
 lsof -p $(pgrep -f bind-shell)
 ```
 
-Set resource limits (systemd):
+Resource limits (systemd example):
+
 ```ini
 [Service]
 MemoryLimit=512M
@@ -601,25 +641,20 @@ CPUQuota=50%
 LimitNOFILE=1024
 ```
 
-**3. Network Optimization**
+#### Network optimization
 
 ```bash
 # Use localhost for local connections (faster)
 bind-shell --host 127.0.0.1
 ```
 
-Optimize buffer sizes in code:
-```python
-# Default is 4096, adjust if needed
-BUFFER_SIZE = 8192  # For large outputs
-BUFFER_SIZE = 2048  # For small outputs
-```
+Buffer size is defined in `src/simple_bind_shell/bind/bind_shell.py` as `BUFFER_SIZE` (default 2048).
+Adjust with care if you expect very large output per command.
 
-#### Scalability
+### Scalability
 
-**1. Horizontal Scaling**
+#### Horizontal scaling
 
-Run multiple instances:
 ```bash
 # Instance 1
 bind-shell --host 127.0.0.1 --port 4444 &
@@ -631,13 +666,11 @@ bind-shell --host 127.0.0.1 --port 4445 &
 bind-shell --host 127.0.0.1 --port 4446 &
 ```
 
-Load balancing:
-```bash
-# Use HAProxy or nginx
-# Round-robin to multiple bind-shell instances
-```
+Load balancing example:
 
-**2. Vertical Scaling**
+Use HAProxy or nginx for round-robin distribution.
+
+#### Vertical scaling
 
 ```bash
 # System-wide limits
@@ -650,9 +683,7 @@ bind-shell --max-connections 100
 
 ### Operational Best Practices
 
-#### Deployment
-
-**1. Environment Separation**
+#### Deployment profiles
 
 ```bash
 # Development: Local only, verbose logging
@@ -665,24 +696,21 @@ bind-shell --host 10.0.1.100 --port 4444
 bind-shell --host 127.0.0.1 --port 4444
 ```
 
-**2. Configuration Management**
+#### Configuration management
 
-Use environment variables:
+Environment variables:
+
 ```bash
 # .env file
 BIND_SHELL_HOST=127.0.0.1
 BIND_SHELL_PORT=4444
 BIND_SHELL_MAX_CONN=20
-
-# Load and use
-source .env
-bind-shell --host $BIND_SHELL_HOST --port $BIND_SHELL_PORT
 ```
 
-Use configuration files:
+Shell config example:
+
 ```bash
 # config.sh
-#!/bin/bash
 HOST="127.0.0.1"
 PORT="4444"
 MAX_CONN="20"
@@ -690,9 +718,10 @@ MAX_CONN="20"
 bind-shell --host $HOST --port $PORT --max-connections $MAX_CONN
 ```
 
-**3. Process Management**
+#### Process management
 
-Use systemd:
+Systemd:
+
 ```ini
 [Unit]
 Description=Bind Shell Server
@@ -709,7 +738,8 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-Use supervisord:
+Supervisord:
+
 ```ini
 [program:bind-shell]
 command=bind-shell --host 127.0.0.1 --port 4444
@@ -719,11 +749,10 @@ stderr_logfile=/var/log/bind-shell.err.log
 stdout_logfile=/var/log/bind-shell.out.log
 ```
 
-#### Monitoring
+### Monitoring
 
-**1. Health Checks**
+#### Health checks
 
-Simple check:
 ```bash
 #!/bin/bash
 nc -zv localhost 4444 > /dev/null 2>&1
@@ -736,6 +765,7 @@ fi
 ```
 
 Advanced check:
+
 ```python
 import socket
 
@@ -744,19 +774,18 @@ def health_check(host, port):
         sock = socket.socket()
         sock.settimeout(5)
         sock.connect((host, port))
-        sock.recv(1024)  # Welcome message
+        sock.recv(1024)
         sock.close()
         return True
-    except:
+    except Exception:
         return False
 
 if not health_check("localhost", 4444):
     print("Server unhealthy")
 ```
 
-**2. Metrics Collection**
+#### Metrics collection (custom)
 
-Log analysis:
 ```bash
 # Count connections
 grep "Connection from" /var/log/bind-shell.log | wc -l
@@ -765,7 +794,8 @@ grep "Connection from" /var/log/bind-shell.log | wc -l
 grep "Connection from" /var/log/bind-shell.log | awk '{print $NF}' | sort | uniq -c | sort -rn
 ```
 
-Prometheus metrics (custom):
+Prometheus example (custom instrumentation required):
+
 ```python
 from prometheus_client import Counter, Gauge
 
@@ -773,21 +803,18 @@ connections_total = Counter('bindshell_connections_total', 'Total connections')
 active_connections = Gauge('bindshell_active_connections', 'Active connections')
 ```
 
-#### Backup and Recovery
+### Backup and Recovery
 
-**1. Configuration Backup**
+#### Configuration backup
 
 ```bash
 # Backup configuration
 tar -czf bind-shell-config-$(date +%Y%m%d).tar.gz \
     /etc/systemd/system/bind-shell.service \
     /etc/bind-shell/
-
-# Restore configuration
-tar -xzf bind-shell-config-20240101.tar.gz -C /
 ```
 
-**2. Disaster Recovery**
+#### Disaster recovery
 
 ```bash
 # 1. Stop service
@@ -808,7 +835,7 @@ nc -zv localhost 4444
 
 ### Testing Best Practices
 
-**Unit Testing**
+#### Unit testing
 
 ```python
 import pytest
@@ -825,7 +852,7 @@ def test_command_execution():
     assert b"test" in result
 ```
 
-**Integration Testing**
+#### Integration testing
 
 ```bash
 #!/bin/bash
@@ -848,7 +875,7 @@ fi
 kill $SERVER_PID
 ```
 
-**Load Testing**
+#### Load testing
 
 ```python
 import socket
@@ -864,7 +891,7 @@ def connect_client(host, port, duration):
             sock.sendall(b"echo test\n")
             sock.recv(1024)
             sock.close()
-        except:
+        except Exception:
             pass
 
 # Simulate 10 concurrent clients for 60 seconds
@@ -880,12 +907,11 @@ for t in threads:
 
 ### Documentation Best Practices
 
-**Code Documentation**
+#### Code documentation
 
 ```python
 from simple_bind_shell import BindShell
 
-# Always document your usage
 """
 Bind Shell Server Configuration
 
@@ -895,15 +921,14 @@ Security: Localhost only, no external access
 """
 
 shell = BindShell(
-    host="127.0.0.1",  # Localhost only
-    port=4444,          # Standard port
-    max_connections=10  # Limit concurrent connections
+    host="127.0.0.1",
+    port=4444,
+    max_connections=10,
 )
 ```
 
-**Operational Documentation**
+#### Operational documentation
 
-Create runbook:
 ```markdown
 # Bind Shell Runbook
 
@@ -925,19 +950,19 @@ Ctrl+C or kill <PID>
 
 ### Compliance Best Practices
 
-**Audit Trail**
+#### Audit trail
 
 ```bash
-# Log all commands executed
+# Log all commands executed (not enabled by default)
 bind-shell --verbose 2>&1 | tee -a /var/log/bind-shell-audit.log
 
 # Include timestamps
-bind-shell --verbose 2>&1 | while read line; do 
+bind-shell --verbose 2>&1 | while read line; do
     echo "$(date -Iseconds) $line" >> /var/log/bind-shell-audit.log
 done
 ```
 
-**Access Control**
+#### Access control
 
 ```bash
 # Restrict who can run bind-shell
@@ -948,7 +973,7 @@ sudo chmod 750 /usr/local/bin/bind-shell
 sudo usermod -aG bindshell username
 ```
 
-**Data Protection**
+#### Data protection
 
 ```bash
 # Ensure logs are protected
@@ -969,218 +994,102 @@ sudo chown bindshell:bindshell /var/log/bind-shell.log
 
 ## Security Considerations
 
-### ⚠️ Critical Warnings
+### Critical warnings
 
-- **No Authentication**: Anyone who can connect can execute commands
-- **No Encryption**: All traffic is plaintext (credentials, commands, output)
-- **Full System Access**: Commands run with server process privileges
-- **No Audit Trail**: Limited logging of executed commands (enable --verbose)
+- No authentication: Anyone who can connect can execute commands.
+- No encryption: All traffic is plaintext.
+- Full system access: Commands run with server process privileges.
+- No command audit by default: Verbose logging does not log commands.
 
-### Recommended Use Cases
+### Recommended use cases
 
-✅ **Appropriate Uses:**
 - Local development and testing
 - Isolated lab environments
 - CTF challenges and security training
-- Penetration testing (authorized)
+- Authorized penetration testing
 - Educational purposes
 
-❌ **Inappropriate Uses:**
+### Inappropriate use cases
+
 - Production systems
 - Public-facing servers
 - Systems with sensitive data
 - Multi-tenant environments
 - Compliance-regulated systems
 
-### Secure Alternatives
+### Secure alternatives
 
-For production use, consider:
-- **SSH**: Encrypted, authenticated remote access
-- **Ansible**: Automated configuration management
-- **Fabric**: Python-based deployment tool
-- **Paramiko**: Python SSH implementation
-
-## Development
-
-### Setup Development Environment
-
-```bash
-# Clone repository
-git clone https://github.com/yourusername/bind-shell.git
-cd bind-shell
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-venv\Scripts\activate     # Windows
-
-# Install in development mode
-pip install -e ".[dev]"
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=simple_bind_shell --cov-report=html
-
-# Run specific test class
-pytest tests/test_bind_shell.py::TestCommandExecution
-
-# Run with verbose output
-pytest -v
-
-# Run and show print statements
-pytest -s
-```
-
-### Code Quality
-
-```bash
-# Format code
-black src/ tests/
-
-# Check formatting
-black --check src/ tests/
-
-# Lint code
-ruff check src/ tests/
-
-# Fix linting issues
-ruff check --fix src/ tests/
-```
-
-### Using Makefile
-
-```bash
-# Show available commands
-make help
-
-# Install dependencies
-make install
-
-# Run tests
-make test
-
-# Format and lint
-make format
-make lint
-
-# Build package
-make build
-
-# Clean artifacts
-make clean
-```
-
-### Building Distribution
-
-```bash
-# Build wheel and source distribution
-python -m build
-
-# Output in dist/
-ls dist/
-# bind_shell-0.1.0-py3-none-any.whl
-# bind-shell-0.1.0.tar.gz
-```
+- SSH (encrypted, authenticated remote access)
+- Ansible (automation and orchestration)
+- Fabric (Python-based deployment tool)
+- Paramiko (Python SSH implementation)
 
 ## Troubleshooting
 
-### Common Issues
-
-#### Port Already in Use
+### Port already in use
 
 ```bash
-# Error: [Errno 98] Address already in use
-
-# Solution 1: Use different port
+# Choose a different port
 bind-shell --port 5555
 
-# Solution 2: Kill existing process
-lsof -ti:4444 | xargs kill -9  # Linux/macOS
-netstat -ano | findstr :4444   # Windows (find PID, then taskkill)
+# Find and kill the process (Windows)
+netstat -ano | findstr :4444
 ```
 
-#### Permission Denied
+### Permission denied (Linux/macOS)
 
 ```bash
-# Error: [Errno 13] Permission denied
-
-# Solution: Use non-privileged port (>1024)
-bind-shell --port 4444  # Instead of port 80
+# Use a port > 1024
+bind-shell --port 4444
 ```
 
-#### Connection Refused
+### Connection refused
 
 ```bash
-# Client can't connect
-
 # Check server is running
-netstat -tuln | grep 4444  # Linux/macOS
-netstat -an | findstr 4444 # Windows
-
-# Check firewall
-sudo ufw status  # Linux
-
-# Try localhost
-nc 127.0.0.1 4444
+netstat -an | findstr 4444   # Windows
+netstat -tuln | grep 4444    # Linux/macOS
 ```
 
-#### Command Timeout
+### Command timeout
 
 ```bash
-# Long-running commands timeout after 30s
-
-# Solution: Break into smaller commands or modify timeout in code
-# Edit src/simple_bind_shell/bind_shell.py
-# Change: timeout=30 to timeout=300
+# Increase timeout to 120 seconds
+bind-shell --command-timeout 120
 ```
 
-### Debug Mode
+## Development
+
+### Setup
 
 ```bash
-# Enable verbose logging
-bind-shell --verbose
+git clone https://github.com/yourusername/bind-shell.git
+cd bind-shell
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
 
-# Redirect to file
-bind-shell --verbose 2>&1 | tee debug.log
-
-# Python logging
-export PYTHONVERBOSE=1
-bind-shell
+pip install -e ".[dev]"
 ```
 
-### Getting Help
+### Tests
 
 ```bash
-# Show help
-bind-shell --help
+pytest -v
+```
 
-# Check version
-bind-shell --version
+### Lint and format
 
-# View documentation
-cat docs/BEST_PRACTICES.md
+```bash
+black src/ tests/
+ruff check src/ tests/
 ```
 
 ## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Quick Contribution Guide
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature-name`
-3. Make changes and add tests
-4. Run tests: `pytest`
-5. Format code: `black src/ tests/`
-6. Commit: `git commit -m "Add feature"`
-7. Push: `git push origin feature-name`
-8. Create Pull Request
 
 ## License
 
@@ -1192,13 +1101,13 @@ This software is provided for educational and testing purposes only. Users are r
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/bind-shell/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/bind-shell/discussions)
-- **Security**: See [SECURITY.md](SECURITY.md)
+- Issues: [GitHub Issues](https://github.com/yourusername/bind-shell/issues)
+- Discussions: [GitHub Discussions](https://github.com/yourusername/bind-shell/discussions)
+- Security: See [SECURITY.md](SECURITY.md)
 
 ## Acknowledgments
 
-- Built with [Click](https://click.palletsprojects.com/) for CLI
-- Tested with [pytest](https://pytest.org/)
-- Formatted with [Black](https://black.readthedocs.io/)
-- Linted with [Ruff](https://github.com/astral-sh/ruff)
+- Built with Click for CLI
+- Tested with pytest
+- Formatted with Black
+- Linted with Ruff

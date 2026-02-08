@@ -31,8 +31,8 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "black>=23.0.0",
-    "ruff>=0.1.0",
+    "black==23.12.1",
+    "ruff==0.1.14",
 ]
 
 [project.scripts]
@@ -51,6 +51,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+pythonpath = ["src"]
 
 [tool.black]
 line-length = 88
@@ -59,4 +60,6 @@ target-version = ["py38"]
 [tool.ruff]
 line-length = 88
 target-version = "py38"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
