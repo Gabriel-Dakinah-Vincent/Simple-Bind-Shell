@@ -9,6 +9,7 @@ from simple_bind_shell.bind.bind_shell import (
     DEFAULT_COMMAND_TIMEOUT,
     BindShell,
 )
+from simple_bind_shell.version import __version__
 
 
 @click.command()
@@ -59,7 +60,7 @@ from simple_bind_shell.bind.bind_shell import (
     is_flag=True,
     help="Enable verbose logging",
 )
-@click.version_option()
+@click.version_option(version=__version__)
 def main(host, port, max_connections, command_timeout, client_timeout, verbose):
     """Bind Shell - A lightweight bind shell server."""
     logging.basicConfig(
