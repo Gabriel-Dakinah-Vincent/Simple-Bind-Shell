@@ -1100,6 +1100,12 @@ source .venv/bin/activate
 pip install -i https://test.pypi.org/simple/ bind-shell
 ```
 
+For a specific version (example):
+
+```bash
+pip install -i https://test.pypi.org/simple/ bind-shell==0.1.2
+```
+
 3. Verify the CLI:
 
 ```bash

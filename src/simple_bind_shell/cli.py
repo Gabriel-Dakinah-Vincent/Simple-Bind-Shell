@@ -60,7 +60,7 @@ from simple_bind_shell.version import __version__
     is_flag=True,
     help="Enable verbose logging",
 )
-@click.version_option(version=__version__)
+@click.version_option(version=__version__, package_name="bind-shell")
 def main(host, port, max_connections, command_timeout, client_timeout, verbose):
     """Bind Shell - A lightweight bind shell server."""
     logging.basicConfig(
